@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARMADTIC - Educational Crash Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        @keyframes pulse-fast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-flying {
+            animation: pulse-fast 0.5s infinite;
+            color: #10B981; 
+        }
+        .text-crashed { color: #EF4444; }
+        /* Scrollbar styling untuk Modal */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #4B5563; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans antialiased h-screen flex flex-col" x-data="gameApp()">
+
+    <nav class="bg-gray-800 p-4 shadow-md flex justify-between items-center z-10 relative">
+        <div class="text-xl font-bold tracking-wider text-emerald-400">
+            <i class="fa-solid fa-chart-line mr-2"></i>PARMADTIC
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="text-sm hidden sm:block">
+                <span class="text-gray-400">User:</span> 
+                <span class="font-semibold">{{ username }}</span>
+            </div>
+            <div class="bg-gray-700 px-4 py-2 rounded-lg font-mono">
+                <i class="fa-solid fa-wallet text-yellow-400 mr-1"></i>
+                <span x-text="balance"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col items-center justify-center p-4">
+        
+        <div class="w-full max-w-4xl bg-gray-800 rounded-xl p-3 mb-4 shadow-lg flex items-center justify-between border border-gray-700 overflow-hidden">
+            <div class="flex space-x-2 overflow-x-auto custom-scrollbar flex-grow mr-4 pb-1">
+                <template x-for="(cp, index) in recentHistory" :key="index">
+                    <span class="px-3 py-1 rounded-md text-sm font-bold whitespace-nowrap"
+                          :class="cp >= 2.0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'"
+                          x-text="cp.toFixed(2) + 'x'">
+                    </span>
+                </template>
+                <span x-show="recentHistory.length === 0" class="text-gray-500 text-sm italic">Belum ada riwayat...</span>
+            </div>
+            <button @click="openModal()" class="flex-shrink-0 text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded transition font-semibold">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Riwayat Semua
+            </button>
+        </div>
+
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-10 w-full max-w-4xl text-center relative border border-gray-700">
+            <div class="h-56 sm:h-64 flex flex-col items-center justify-center">
+                <template x-if="status === 'WAITING'">
+                    <div>
+                        <div class="text-xl sm:text-2xl text-gray-400 mb-2">Mempersiapkan Putaran...</div>
+                        <div class="text-4xl sm:text-5xl font-bold text-yellow-400" x-text="countdown + 's'"></div>
+                    </div>
+                </template>
+
+                <template x-if="status === 'FLYING'">
+                    <div class="text-6xl sm:text-7xl font-bold font-mono animate-flying transition-all">
+                        <span x-text="multiplier"></span>x
+                    </div>
+                </template>
+
+                <template x-if="status === 'CRASHED'">
+                    <div>
+                        <div class="text-6xl sm:text-7xl font-bold font-mono text-crashed mb-2">
+                            <span x-text="multiplier"></span>x
+                        </div>
+                        <div class="text-lg sm:text-xl text-red-400 uppercase tracking-widest font-bold">Hancur!</div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="mt-6 bg-gray-700 p-4 sm:p-6 rounded-xl">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <div class="flex bg-gray-900 rounded-lg overflow-hidden border border-gray-600 w-full sm:w-64">
+                        <div class="px-4 py-3 bg-gray-800 text-gray-400"><i class="fa-solid fa-coins"></i></div>
+                        <input type="number" x-model="betAmount" :disabled="isBetPlaced || status !== 'WAITING'" 
+                               class="bg-transparent w-full px-3 py-2 outline-none font-mono text-lg" 
+                               min="1" step="1">
+                    </div>
+                    
+                    <template x-if="!isBetPlaced">
+                        <button @click="placeBet()" :disabled="status !== 'WAITING'" 
+                                class="w-full sm:w-48 py-3 rounded-lg font-bold text-lg uppercase transition-all"
+                                :class="status === 'WAITING' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'">
+                            Pasang
+                        </button>
+                    </template>
+                    <template x-if="isBetPlaced">
+                        <button @click="cashout()" :disabled="status !== 'FLYING'" 
+                                class="w-full sm:w-48 py-3 rounded-lg font-bold text-lg uppercase shadow-[0_0_15px_rgba(234,179,8,0.5)] transition-all"
+                                :class="status === 'FLYING' ? 'bg-yellow-500 hover:bg-yellow-600 text-gray-900' : 'bg-gray-600 text-gray-400 cursor-not-allowed'">
+                            Tarik Dana
+                        </button>
+                    </template>
+                </div>
+                <div class="mt-4 h-6 text-sm font-mono text-emerald-400" x-text="sysMessage"></div>
+            </div>
+        </div>
+    </main>
+
+    <div x-show="isModalOpen" style="display: none;" 
+         class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+         x-transition>
+        <div class="bg-gray-800 rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] border border-gray-600" @click.away="closeModal()">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900 rounded-t-xl">
+                <h2 class="font-bold text-lg text-emerald-400"><i class="fa-solid fa-list mr-2"></i>Riwayat Semua Putaran</h2>
+                <button @click="closeModal()" class="text-gray-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto custom-scrollbar flex-grow">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="text-xs text-gray-500 uppercase bg-gray-700/50">
+                        <tr>
+                            <th class="px-4 py-2">Ronde ID</th>
+                            <th class="px-4 py-2">Waktu (WIB)</th>
+                            <th class="px-4 py-2 text-right">Crash Point</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="item in fullHistoryData" :key="item.id">
+                            <tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">
+                                <td class="px-4 py-3 font-mono text-gray-400" x-text="'#' + item.id"></td>
+                                <td class="px-4 py-3" x-text="item.waktu"></td>
+                                <td class="px-4 py-3 text-right font-bold"
+                                    :class="item.crash_point >= 2.0 ? 'text-emerald-400' : 'text-red-400'"
+                                    x-text="item.crash_point.toFixed(2) + 'x'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <div x-show="isLoadingHistory" class="text-center py-4 text-emerald-500">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl"></i>
+                </div>
+                
+                <div x-show="hasNextPage && !isLoadingHistory" class="text-center mt-4">
+                    <button @click="loadMoreHistory()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition">
+                        Muat Lebih Banyak...
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function gameApp() {
+            return {
+                ws: null,
+                status: 'WAITING',
+                multiplier: '1.00',
+                countdown: '5.0',
+                roundId: null,
+                recentHistory: [], // Real-time 10 data
+                
+                balance: '{{ balance }}',
+                betAmount: 10,
+                betId: null,
+                isBetPlaced: false,
+                sysMessage: 'Menghubungkan ke server...',
+
+                // Modal States
+                isModalOpen: false,
+                fullHistoryData: [],
+                currentPage: 1,
+                hasNextPage: false,
+                isLoadingHistory: false,
+
+                init() {
+                    this.connectWebSocket();
+                },
+
+                connectWebSocket() {
+                    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+                    this.ws = new WebSocket(protocol + window.location.host + '/ws/game/');
+
+                    this.ws.onopen = () => { this.sysMessage = 'Terhubung. Siap bermain.'; };
+
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'game_tick') {
+                            this.status = data.payload.state;
+                            this.roundId = data.payload.round_id;
+                            
+                            // Selalu update recent history dari broadcast server
+                            if (data.payload.history) {
+                                this.recentHistory = data.payload.history;
+                            }
+
+                            if (this.status === 'WAITING') {
+                                this.countdown = data.payload.countdown;
+                            } else if (this.status === 'FLYING') {
+                                this.multiplier = data.payload.multiplier;
+                            } else if (this.status === 'CRASHED') {
+                                this.multiplier = data.payload.multiplier;
+                                this.isBetPlaced = false; 
+                            }
+                        } 
+                        else if (data.type === 'bet_success') {
+                            this.isBetPlaced = true;
+                            this.betId = data.bet_id;
+                            this.balance = (parseFloat(this.balance) - parseFloat(this.betAmount)).toFixed(4);
+                            this.sysMessage = data.message;
+                        } 
+                        else if (data.type === 'cashout_success') {
+                            this.isBetPlaced = false;
+                            this.balance = (parseFloat(this.balance) + parseFloat(data.profit)).toFixed(4);
+                            this.sysMessage = data.message;
+                        }
+                        else if (data.type === 'error') {
+                            this.sysMessage = `Error: ${data.message}`;
+                            setTimeout(() => this.sysMessage = '', 3000);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.sysMessage = 'Koneksi terputus. Mencoba ulang...';
+                        setTimeout(() => this.connectWebSocket(), 3000);
+                    };
+                },
+
+                placeBet() {
+                    if (this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ action: 'bet', amount: this.betAmount.toString(), round_id: this.roundId }));
+                    }
+                },
+                cashout() {
+                    if (this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ action: 'cashout', bet_id: this.betId, multiplier: this.multiplier.toString() }));
+                    }
+                },
+
+                // --- MODAL & PAGINATION LOGIC ---
+                openModal() {
+                    this.isModalOpen = true;
+                    this.fullHistoryData = [];
+                    this.currentPage = 1;
+                    this.fetchHistory();
+                },
+                closeModal() {
+                    this.isModalOpen = false;
+                },
+                fetchHistory() {
+                    this.isLoadingHistory = true;
+                    fetch(`/api/history/?page=${this.currentPage}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Append data (bukan di-replace agar memanjang ke bawah saat "Load More")
+                            this.fullHistoryData = [...this.fullHistoryData, ...data.history];
+                            this.hasNextPage = data.has_next;
+                            this.isLoadingHistory = false;
+                        })
+                        .catch(err => {
+                            console.error("Gagal memuat history:", err);
+                            this.isLoadingHistory = false;
+                        });
+                },
+                loadMoreHistory() {
+                    if (this.hasNextPage) {
+                        this.currentPage++;
+                        this.fetchHistory();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
