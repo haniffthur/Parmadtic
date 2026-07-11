@@ -1,96 +1,142 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="flex flex-col items-center justify-center p-6 h-full text-center" x-data="walletApp('withdraw')">
-    <div class="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 max-w-md w-full relative">
-        <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-100">
-            <i class="fa-solid fa-money-bill-transfer text-3xl text-emerald-600"></i>
+<div x-data="withdrawForm()" class="max-w-2xl mx-auto p-4 md:p-6 mb-10">
+    
+    <!-- HEADER -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6 relative overflow-hidden">
+        <div class="absolute -right-6 -top-6 text-slate-100 opacity-50 pointer-events-none">
+            <i class="fa-solid fa-money-bill-transfer text-[10rem]"></i>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-black text-slate-800 mb-2 tracking-tight">Simulasi Penarikan</h1>
-        <p class="text-slate-500 text-sm mb-6">Saldo yang dapat ditarik: <br>
-            <span class="text-emerald-600 font-black text-2xl" id="page-balance">Rp {{ balance|floatformat:0 }}</span>
-        </p>
-        
-        <div class="flex flex-col gap-4 text-left">
-            <label class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Nominal Penarikan (IDR)</label>
-            <div class="flex bg-slate-50 rounded-xl overflow-hidden border border-slate-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
-                <div class="px-4 py-3 bg-slate-100 text-slate-500 font-bold border-r border-slate-200">Rp</div>
-                <input type="number" x-model="amount" class="bg-transparent w-full px-3 py-3 outline-none font-black text-slate-800 text-lg" placeholder="50000" min="10000" step="10000">
+        <div class="relative z-10">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-800 mb-2 tracking-tight">Tarik Dana</h2>
+            <p class="text-slate-500 text-sm font-medium">Cairkan saldo simulasi Anda ke rekening atau E-Wallet.</p>
+            
+            <!-- Saldo Info -->
+            <div class="mt-6 bg-blue-50 border border-blue-100 rounded-2xl p-5 flex justify-between items-center shadow-inner">
+                <div>
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Saldo Tersedia</p>
+                    <p class="text-3xl font-black text-blue-700 tabular-nums">Rp <span x-text="formatRupiah(balance)"></span></p>
+                </div>
+                <div class="bg-blue-600 text-white w-12 h-12 rounded-xl shadow-md shadow-blue-600/30 flex items-center justify-center">
+                    <i class="fa-solid fa-wallet text-xl"></i>
+                </div>
             </div>
-            
-            <p x-show="errorMessage" x-text="errorMessage" class="text-red-500 text-xs font-bold bg-red-50 p-2 rounded-lg"></p>
-            <p x-show="successMessage" x-text="successMessage" class="text-emerald-600 text-xs font-bold bg-emerald-50 p-2 rounded-lg"></p>
-            
-            <button @click="processTransaction()" :disabled="isLoading" 
-                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-600/20 mt-2 disabled:bg-slate-300 disabled:cursor-not-allowed active:scale-[0.98]">
-                <span x-show="!isLoading">Tarik Dana</span>
-                <span x-show="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...</span>
-            </button>
         </div>
     </div>
+
+    <!-- FORM UTAMA -->
+    <form method="POST" action="{% url 'withdraw_view' %}" class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 md:p-8 relative">
+        {% csrf_token %}
+        
+        <!-- Pesan Alert dari Django Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-6 p-4 rounded-xl font-bold text-sm shadow-sm
+                    {% if message.tags == 'error' %}bg-red-50 text-red-600 border border-red-200
+                    {% else %}bg-emerald-50 text-emerald-600 border border-emerald-200{% endif %}">
+                    <i class="fa-solid {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %} mr-2"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- INPUT NOMINAL -->
+        <div class="mb-8">
+            <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Nominal Penarikan</label>
+            <div class="relative flex items-center">
+                <span class="absolute left-4 font-bold text-slate-400">Rp</span>
+                <input type="number" name="amount" x-model="amount" required min="50000" :max="balance"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition text-lg disabled:opacity-50"
+                       placeholder="0">
+            </div>
+            <div class="flex justify-between items-center mt-2">
+                <p class="text-[11px] text-slate-400 font-bold">Min: Rp 50.000</p>
+                <button type="button" @click="amount = balance" class="text-[11px] font-black text-blue-600 hover:underline">TARIK SEMUA (MAX)</button>
+            </div>
+        </div>
+
+        <!-- TAB METODE PENARIKAN -->
+        <div class="mb-6">
+            <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Metode Tujuan</label>
+            <div class="flex gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+                <button type="button" @click="method = 'BANK'" 
+                        class="flex-1 py-3 rounded-xl text-sm font-black transition-all active:scale-95"
+                        :class="method === 'BANK' ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'">
+                    <i class="fa-solid fa-building-columns mr-2"></i>Bank
+                </button>
+                <button type="button" @click="method = 'EWALLET'" 
+                        class="flex-1 py-3 rounded-xl text-sm font-black transition-all active:scale-95"
+                        :class="method === 'EWALLET' ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'">
+                    <i class="fa-solid fa-mobile-screen mr-2"></i>E-Wallet
+                </button>
+            </div>
+            <!-- Input tersembunyi untuk dikirim ke Backend -->
+            <input type="hidden" name="method" :value="method">
+        </div>
+
+        <!-- PILIHAN BANK -->
+        <div x-show="method === 'BANK'" x-cloak class="mb-6 space-y-4">
+            <div>
+                <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Pilih Bank</label>
+                <select name="bank_code" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition appearance-none" :required="method === 'BANK'">
+                    <option value="">-- Pilih Bank Tujuan --</option>
+                    <option value="BCA">Bank Central Asia (BCA)</option>
+                    <option value="BNI">Bank Negara Indonesia (BNI)</option>
+                    <option value="BRI">Bank Rakyat Indonesia (BRI)</option>
+                    <option value="MANDIRI">Bank Mandiri</option>
+                    <option value="BSI">Bank Syariah Indonesia (BSI)</option>
+                    <option value="CIMB">Bank CIMB Niaga</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PILIHAN EWALLET -->
+        <div x-show="method === 'EWALLET'" x-cloak class="mb-6 space-y-4">
+            <div>
+                <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Pilih E-Wallet</label>
+                <select name="ewallet_code" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition appearance-none" :required="method === 'EWALLET'">
+                    <option value="">-- Pilih E-Wallet Tujuan --</option>
+                    <option value="GOPAY">GoPay</option>
+                    <option value="OVO">OVO</option>
+                    <option value="DANA">DANA</option>
+                    <option value="SHOPEEPAY">ShopeePay</option>
+                    <option value="LINKAJA">LinkAja</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- INPUT NOMOR REKENING / HANDPHONE -->
+        <div class="mb-10">
+            <label class="block text-xs font-black text-slate-600 uppercase tracking-wider mb-3" 
+                   x-text="method === 'BANK' ? 'Nomor Rekening' : 'Nomor Handphone (E-Wallet)'"></label>
+            <input type="text" name="account_no" required pattern="[0-9]+" 
+                   :placeholder="method === 'BANK' ? 'Contoh: 1234567890' : 'Contoh: 081234567890'"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition">
+        </div>
+
+        <!-- TOMBOL SUBMIT -->
+        <button type="submit" :disabled="amount < 50000 || amount > balance"
+                class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] disabled:bg-slate-300 disabled:hover:scale-100 disabled:cursor-not-allowed text-white font-black py-4.5 px-4 rounded-xl transition shadow-lg shadow-blue-600/20 flex justify-center items-center gap-3 text-sm tracking-wide">
+            <i class="fa-solid fa-money-bill-transfer text-lg"></i>
+            <span x-text="'TARIK DANA ' + (amount >= 50000 ? 'Rp ' + formatRupiah(amount) : '')"></span>
+        </button>
+        
+    </form>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<!-- Script walletApp ada di file deposit.html (atau Anda dapat meletakkan script yang sama persis di sini, saya sertakan ulang agar file ini berdiri sendiri) -->
 <script>
-    function walletApp(actionType) {
+    function withdrawForm() {
         return {
-            amount: 50000,
-            isLoading: false,
-            errorMessage: '',
-            successMessage: '',
+            // Linter VS Code akan tenang, dan kode ini 100% aman dari Crash!
+            balance: parseFloat("{{ user.wallet.balance|stringformat:'f'|default:'0' }}") || 0,
+            amount: '',
+            method: 'BANK',
             
-            getCsrfToken() {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, 10) === ('csrftoken=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(10));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            },
-
-            processTransaction() {
-                if (this.amount <= 0) {
-                    this.errorMessage = "Nominal harus lebih dari 0.";
-                    return;
-                }
-                
-                this.errorMessage = '';
-                this.successMessage = '';
-                this.isLoading = true;
-
-                const endpoint = actionType === 'deposit' ? "{% url 'api_simulate_deposit' %}" : "{% url 'api_simulate_withdraw' %}";
-
-                fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': this.getCsrfToken()
-                    },
-                    body: JSON.stringify({ amount: this.amount })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    this.isLoading = false;
-                    if (data.success) {
-                        this.successMessage = data.message;
-                        this.amount = '';
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else {
-                        this.errorMessage = data.message;
-                    }
-                })
-                .catch(error => {
-                    this.isLoading = false;
-                    this.errorMessage = "Terjadi kesalahan sistem.";
-                });
+            formatRupiah(value) {
+                let num = Number(value);
+                if (isNaN(num)) return "0";
+                return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(num);
             }
         }
     }

@@ -10,7 +10,8 @@
 <div x-data="gameApp"
      x-init="
         isAuthenticated = {{ user.is_authenticated|yesno:'true,false' }};
-        balance = '{{ balance|default:"0" }}';
+        // Hapus tanda kutip satu di sekitar {{ balance }}, dan gunakan stringformat
+        balance = {{ balance|stringformat:'f'|default:'0' }}; 
         loginUrl = '{% url 'login_view' %}';
         depositUrl = '{% url 'deposit_view' %}';
      "

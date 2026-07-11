@@ -1,5 +1,6 @@
 import json
 from decimal import Decimal
+from pyexpat.errors import messages
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib.auth import login, logout
@@ -10,8 +11,9 @@ from django.db import transaction
 from django.db.models import Sum
 
 from core.models.game import GameRound, Bet
-from core.services.wallet_service import WalletService
+from core.services.wallet_service import InsufficientBalanceError, WalletService
 from core.forms import CustomUserCreationForm
+from django.contrib import messages
 
 def get_user_context(user):
     if not hasattr(user, 'wallet'):
@@ -152,3 +154,55 @@ def api_simulate_withdraw(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': False, 'message': 'Invalid Method'})
+
+@login_required
+def withdraw_view(request):
+    # Pastikan wallet sudah ada
+    if not hasattr(request.user, 'wallet'):
+        WalletService.create_wallet_for_user(request.user)
+
+    if request.method == 'POST':
+        try:
+            # 1. Ambil data dari Form
+            amount = Decimal(request.POST.get('amount', 0))
+            method = request.POST.get('method')
+            account_no = request.POST.get('account_no')
+            
+            # Tentukan provider berdasarkan metode yang dipilih
+            if method == 'BANK':
+                provider = request.POST.get('bank_code')
+            else:
+                provider = request.POST.get('ewallet_code')
+
+            # 2. Validasi Lapisan Backend (Keamanan Ekstra)
+            if amount < 50000:
+                messages.error(request, "Minimal penarikan adalah Rp 50.000,-")
+                return redirect('withdraw_view')
+                
+            if not provider or not account_no:
+                messages.error(request, "Data tujuan penarikan tidak lengkap!")
+                return redirect('withdraw_view')
+
+            # 3. Potong Saldo (Gunakan Service yang aman dari Race Condition)
+            WalletService.deduct_balance(request.user.id, amount)
+
+            # TODO: Di tahap produksi sungguhan, Anda bisa menyimpan data ini ke tabel 'WithdrawalHistory'
+            # Withdrawal.objects.create(user=request.user, amount=amount, method=method, provider=provider, account_no=account_no)
+
+            messages.success(request, f"Sukses! Penarikan Rp {amount:,.0f} ke {provider} ({account_no}) sedang diproses.")
+            return redirect('withdraw_view')
+
+        except InsufficientBalanceError:
+            messages.error(request, "Saldo Anda tidak mencukupi untuk penarikan ini.")
+        except ValueError as e:
+            messages.error(request, "Nominal penarikan tidak valid.")
+        except Exception as e:
+            messages.error(request, "Terjadi kesalahan sistem, silakan coba lagi.")
+            
+        return redirect('withdraw_view')
+
+    # METHOD GET (Tampilkan Halaman)
+    context = {
+        'balance': request.user.wallet.balance
+    }
+    return render(request, 'core/withdraw.html', context)
