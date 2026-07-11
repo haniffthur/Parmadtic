@@ -1,0 +1,19 @@
+{% load static %}
+
+<audio
+    x-ref="bgm"
+    src="{% static 'core/audio/background_parmadtic.mp3' %}"
+    loop
+    preload="auto">
+</audio>
+
+<div class="flex justify-end mb-3">
+    <button
+        x-show="audioUnlocked"
+        @click="toggleMute()"
+        class="audio-toggle-btn inline-flex items-center justify-center w-9 h-9 bg-slate-50 text-slate-500 rounded-full border border-slate-100 hover:bg-slate-100">
+
+        <i class="fa-solid"
+           :class="isMuted ? 'fa-volume-xmark' : 'fa-volume-high'"></i>
+    </button>
+</div>

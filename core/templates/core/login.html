@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="flex items-center justify-center min-h-[70vh] p-4">
+    <div class="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm"><i class="fa-solid fa-flask text-xl"></i></div>
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Selamat Datang Kembali</h1>
+            <p class="text-slate-500 mt-1 text-sm">Masuk ke akun PARMADTIC Anda.</p>
+        </div>
+        <form method="POST" action="">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 text-red-500 p-3 rounded-xl mb-4 text-sm font-bold border border-red-100">Kredensial tidak valid.</div>
+            {% endif %}
+            <div class="mb-4">
+                <label class="block text-slate-500 text-xs font-bold mb-2 uppercase tracking-wider">Username</label>
+                <input type="text" name="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" required>
+            </div>
+            <div class="mb-6">
+                <label class="block text-slate-500 text-xs font-bold mb-2 uppercase tracking-wider">Password</label>
+                <input type="password" name="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.98]">Masuk ke Sistem</button>
+        </form>
+        <p class="text-center text-slate-500 mt-6 text-sm font-medium">Belum punya akun? <a href="{% url 'register_view' %}" class="text-blue-600 hover:underline font-bold">Daftar sekarang</a></p>
+    </div>
+</div>
+{% endblock %}

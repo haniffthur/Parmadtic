@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center p-6 h-full text-center" x-data="walletApp('withdraw')">
+    <div class="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 max-w-md w-full relative">
+        <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+            <i class="fa-solid fa-money-bill-transfer text-3xl text-emerald-600"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-800 mb-2 tracking-tight">Simulasi Penarikan</h1>
+        <p class="text-slate-500 text-sm mb-6">Saldo yang dapat ditarik: <br>
+            <span class="text-emerald-600 font-black text-2xl" id="page-balance">Rp {{ balance|floatformat:0 }}</span>
+        </p>
+        
+        <div class="flex flex-col gap-4 text-left">
+            <label class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Nominal Penarikan (IDR)</label>
+            <div class="flex bg-slate-50 rounded-xl overflow-hidden border border-slate-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                <div class="px-4 py-3 bg-slate-100 text-slate-500 font-bold border-r border-slate-200">Rp</div>
+                <input type="number" x-model="amount" class="bg-transparent w-full px-3 py-3 outline-none font-black text-slate-800 text-lg" placeholder="50000" min="10000" step="10000">
+            </div>
+            
+            <p x-show="errorMessage" x-text="errorMessage" class="text-red-500 text-xs font-bold bg-red-50 p-2 rounded-lg"></p>
+            <p x-show="successMessage" x-text="successMessage" class="text-emerald-600 text-xs font-bold bg-emerald-50 p-2 rounded-lg"></p>
+            
+            <button @click="processTransaction()" :disabled="isLoading" 
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-600/20 mt-2 disabled:bg-slate-300 disabled:cursor-not-allowed active:scale-[0.98]">
+                <span x-show="!isLoading">Tarik Dana</span>
+                <span x-show="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Script walletApp ada di file deposit.html (atau Anda dapat meletakkan script yang sama persis di sini, saya sertakan ulang agar file ini berdiri sendiri) -->
+<script>
+    function walletApp(actionType) {
+        return {
+            amount: 50000,
+            isLoading: false,
+            errorMessage: '',
+            successMessage: '',
+            
+            getCsrfToken() {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, 10) === ('csrftoken=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(10));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            },
+
+            processTransaction() {
+                if (this.amount <= 0) {
+                    this.errorMessage = "Nominal harus lebih dari 0.";
+                    return;
+                }
+                
+                this.errorMessage = '';
+                this.successMessage = '';
+                this.isLoading = true;
+
+                const endpoint = actionType === 'deposit' ? "{% url 'api_simulate_deposit' %}" : "{% url 'api_simulate_withdraw' %}";
+
+                fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify({ amount: this.amount })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.isLoading = false;
+                    if (data.success) {
+                        this.successMessage = data.message;
+                        this.amount = '';
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        this.errorMessage = data.message;
+                    }
+                })
+                .catch(error => {
+                    this.isLoading = false;
+                    this.errorMessage = "Terjadi kesalahan sistem.";
+                });
+            }
+        }
+    }
+</script>
+{% endblock %}

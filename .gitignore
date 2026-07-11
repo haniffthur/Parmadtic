@@ -1,0 +1,22 @@
+# Lingkungan Virtual (Virtual Environment)
+venv/
+env/
+.venv/
+
+# File Rahasia / Environment Variables
+.env
+
+# Database Lokal Django
+db.sqlite3
+
+# File Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# File Sistem OS
+.DS_Store
+Thumbs.db
+
+# Folder Media / Upload (Jika ada)
+media/

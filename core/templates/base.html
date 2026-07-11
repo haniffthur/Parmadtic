@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PARMADTIC - System Simulation</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- 1. Tambahkan Library Turbo untuk navigasi tanpa loading (SPA feel) -->
+    <script src="https://unpkg.com/@hotwired/turbo@8.0.4/dist/turbo.es2017-umd.js"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col selection:bg-blue-200 pb-20 md:pb-0">
+    
+    <!-- 2. Tambahkan data-turbo-permanent agar elemen ini tidak pernah dihancurkan saat pindah halaman -->
+    <audio id="global-bgm" loop preload="auto" data-turbo-permanent="bgm-player">
+        <source src="{% static 'core/audio/background_parmadtic.mp3' %}" type="audio/mpeg">
+    </audio>
+
+    {% if user.is_authenticated %}
+        {% include 'components/navbar.html' %}
+    {% endif %}
+    
+    <main class="flex-grow container max-w-5xl mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if user.is_authenticated %}
+        {% include 'components/footer.html' %}
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+
+<script>
+    // Gunakan turbo:load agar script dieksekusi dengan benar dalam ekosistem Turbo
+    document.addEventListener('turbo:load', () => {
+        const bgm = document.getElementById('global-bgm');
+        
+        // Mencegah inisialisasi ganda jika elemen audio sudah berjalan dari halaman sebelumnya
+        if (!bgm || bgm.dataset.initialized === 'true') return;
+        
+        // Tandai bahwa audio sudah diinisialisasi
+        bgm.dataset.initialized = 'true';
+
+        bgm.volume = localStorage.getItem('bgm-volume') || 0.25;
+        bgm.muted = localStorage.getItem('bgm-muted') === 'true';
+
+        const savedTime = localStorage.getItem('bgm-time');
+        if (savedTime) {
+            bgm.currentTime = parseFloat(savedTime);
+        }
+
+        setInterval(() => {
+            localStorage.setItem('bgm-time', bgm.currentTime);
+        }, 1000);
+
+        bgm.play().catch(() => {
+            document.addEventListener('pointerdown', function startMusic() {
+                bgm.play().catch(() => {});
+                document.removeEventListener('pointerdown', startMusic);
+            }, { once: true });
+        });
+    });
+    
+    // Fallback jika masuk pertama kali (bukan dari navigasi Turbo)
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        document.dispatchEvent(new Event('turbo:load'));
+    } else {
+        document.addEventListener('DOMContentLoaded', () => document.dispatchEvent(new Event('turbo:load')));
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,90 @@
+
+
+<div class="p-6 md:p-8 relative">
+
+    <!-- KARTU INFORMASI TARUHAN AKTIF -->
+    <div x-show="isBetPlaced" x-transition
+         class="bg-blue-50 border border-blue-200 p-5 rounded-2xl mb-6 shadow-inner relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 text-blue-100 opacity-50"><i class="fa-solid fa-coins text-8xl"></i></div>
+        <div class="flex justify-between items-center relative z-10">
+            <div>
+                <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-1">Taruhan Aktif</p>
+                <p class="text-2xl font-black text-blue-800">Rp <span x-text="betAmount"></span></p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-emerald-600 font-black uppercase tracking-widest mb-1">Potensi Menang</p>
+                <p class="text-2xl font-black text-emerald-500">Rp <span x-text="status === 'FLYING' ? (betAmount * multiplier).toFixed(0) : '---'"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AREA TOMBOL AKSI -->
+    {% if user.is_authenticated %}
+        <template x-if="!isBetPlaced">
+            <button @click="placeBet()" :disabled="status !== 'WAITING'"
+                    class="w-full bg-blue-600 hover:bg-blue-700 hover:scale-[1.01] active:scale-[0.98] disabled:bg-slate-300 disabled:hover:scale-100 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition shadow-lg shadow-blue-600/20 mb-8">
+                <span x-text="status === 'WAITING' ? 'PASANG TARUHAN' : 'MENUNGGU RONDE BERIKUTNYA...'"></span>
+            </button>
+        </template>
+
+        <template x-if="isBetPlaced">
+            <div class="flex gap-3 mb-8">
+                <button x-show="status === 'WAITING'" @click="cancelBet()"
+                        class="w-full bg-red-500 hover:bg-red-600 hover:scale-[1.01] active:scale-[0.98] text-white font-bold py-4 rounded-xl transition shadow-lg shadow-red-500/30">
+                    <i class="fa-solid fa-xmark mr-1"></i> BATALKAN
+                </button>
+
+                <button x-show="status === 'FLYING'" @click="cashoutHalf()"
+                        class="w-1/3 bg-slate-800 hover:bg-slate-900 hover:scale-[1.02] active:scale-[0.98] text-white font-bold py-4 rounded-xl transition shadow-lg text-xs md:text-sm">
+                    CAIRKAN 50%
+                </button>
+                <button x-show="status === 'FLYING'" @click="cashoutFull()"
+                        class="w-2/3 bg-amber-500 hover:bg-amber-600 hover:scale-[1.02] active:scale-[0.98] text-white font-bold py-4 rounded-xl transition shadow-lg shadow-amber-500/30 text-sm md:text-base">
+                    CAIRKAN FULL
+                </button>
+            </div>
+        </template>
+    {% else %}
+        <a href="{% url 'login_view' %}" class="w-full bg-slate-800 hover:bg-slate-900 hover:scale-[1.01] text-white font-bold py-4 rounded-xl transition shadow-lg mb-8 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-lock text-sm"></i> LOGIN UNTUK BERMAIN
+        </a>
+    {% endif %}
+
+    <div class="space-y-6">
+        <!-- Opsi Preset Nominal Taruhan -->
+        <div>
+            <label class="text-xs font-black text-slate-600 uppercase tracking-wider block mb-3">Nominal Taruhan</label>
+            <div class="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
+                <template x-for="preset in [10000, 20000, 50000, 100000]">
+                    <button @click="betAmount = preset" :disabled="isBetPlaced || status !== 'WAITING' || !{{ user.is_authenticated|yesno:'true,false' }}"
+                            class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                            :class="betAmount === preset ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                        Rp <span x-text="preset/1000 + 'K'"></span>
+                    </button>
+                </template>
+            </div>
+            <div class="relative flex items-center">
+                <span class="absolute left-4 font-bold text-slate-400 text-sm">Rp</span>
+                <input type="number" x-model="betAmount" :disabled="isBetPlaced || status !== 'WAITING' || !{{ user.is_authenticated|yesno:'true,false' }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition disabled:opacity-50">
+            </div>
+        </div>
+
+        <!-- Opsi Preset Target Auto Cashout -->
+        <div>
+            <label class="text-xs font-black text-slate-600 uppercase tracking-wider block mb-3">Target Auto Cashout</label>
+            <div class="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
+                <template x-for="preset in [1.50, 2.00, 3.00, 5.00, 10.00]">
+                    <button @click="cashoutTarget = preset" :disabled="isBetPlaced || status !== 'WAITING' || !{{ user.is_authenticated|yesno:'true,false' }}"
+                            class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                            :class="parseFloat(cashoutTarget) === preset ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                        <span x-text="preset.toFixed(2) + 'x'"></span>
+                    </button>
+                </template>
+            </div>
+            <div class="relative flex items-center">
+                <input type="number" x-model="cashoutTarget" :disabled="isBetPlaced || status !== 'WAITING' || !{{ user.is_authenticated|yesno:'true,false' }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition disabled:opacity-50" placeholder="Biarkan kosong untuk manual...">
+                <span class="absolute right-4 font-black text-slate-400 text-sm">x</span>
+            </div>
+        </div>
+    </div>
+</div>

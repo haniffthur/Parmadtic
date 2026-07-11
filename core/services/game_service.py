@@ -149,3 +149,82 @@ class GameService:
         # Keamanan: HANYA mengambil status CRASHED agar crash_point putaran saat ini tidak bocor
         recent_rounds = GameRound.objects.filter(status='CRASHED').order_by('-id')[:limit]
         return [float(round.crash_point) for round in recent_rounds]
+    
+    @staticmethod
+    def cancel_bet(bet_id, user_id):
+        """Membatalkan taruhan sebelum pesawat terbang dan mengembalikan saldo."""
+        with transaction.atomic():
+            try:
+                bet = Bet.objects.select_for_update().get(
+                id=bet_id, user_id=user_id, status='PENDING'
+            )
+            except Bet.DoesNotExist:
+                raise GameLogicError("Taruhan tidak ditemukan atau sudah diproses.")
+
+        # Lock GameRound juga — sama seperti cashout(), supaya status-nya
+        # tidak bisa berubah (mis. jadi CRASHED) di tengah transaksi ini.
+            game_round = GameRound.objects.select_for_update().get(id=bet.game_round_id)
+
+            if game_round.status != 'WAITING':
+                raise GameLogicError("Ronde sudah dimulai, taruhan tidak bisa dibatalkan.")
+
+            WalletService.add_balance(user_id, bet.amount)
+            bet.delete()
+            return True
+
+    @staticmethod
+    def cashout_half(bet_id, user_id, current_multiplier):
+
+        current_multiplier = Decimal(str(current_multiplier))
+
+        with transaction.atomic():
+
+            try:
+                bet = Bet.objects.select_for_update().get(
+                    id=bet_id,
+                    user_id=user_id,
+                    status='PENDING'
+                )
+
+            except Bet.DoesNotExist:
+                raise GameLogicError(
+                    "Taruhan tidak ditemukan."
+                )
+
+            game_round = GameRound.objects.select_for_update().get(
+                id=bet.game_round_id
+            )
+
+            if game_round.status != "FLYING":
+                raise GameLogicError(
+                    "Permainan belum terbang."
+                )
+
+            if current_multiplier >= game_round.crash_point:
+                raise GameLogicError(
+                    "Permainan sudah hancur."
+                )
+
+            if bet.half_cashout_done:
+                raise GameLogicError(
+                    "Half Cashout hanya boleh sekali."
+                )
+
+            half_amount = bet.amount / Decimal("2")
+
+            profit = half_amount * current_multiplier
+
+            WalletService.add_balance(
+                user_id,
+                profit
+            )
+
+            bet.amount = half_amount
+            bet.half_cashout_done = True
+
+            bet.save(update_fields=[
+                "amount",
+                "half_cashout_done"
+            ])
+
+            return profit

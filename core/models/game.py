@@ -48,6 +48,7 @@ class Bet(models.Model):
     amount = models.DecimalField(max_digits=19, decimal_places=4)
     cashout_multiplier = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     profit = models.DecimalField(max_digits=19, decimal_places=4, null=True, blank=True)
+    half_cashout_done = models.BooleanField(default=False)
     
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)

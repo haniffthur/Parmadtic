@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 
+from core.models import user
 from core.services.game_service import GameService, GameLogicError
 from core.services.wallet_service import InsufficientBalanceError
 
@@ -36,7 +37,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not user.is_authenticated:
             await self.send_error("Anda harus login untuk bermain.")
             return
-
         try:
             data = json.loads(text_data)
             action = data.get('action')
@@ -50,10 +50,61 @@ class GameConsumer(AsyncWebsocketConsumer):
                 bet_id = data.get('bet_id')
                 multiplier = Decimal(str(data.get('multiplier', '1.00')))
                 await self.handle_cashout(user, bet_id, multiplier)
+            elif action == 'cancel_bet':
+                try:
+                    await database_sync_to_async(
+                        GameService.cancel_bet
+                    )(
+                        data["bet_id"],
+                        user.id
+                    )
 
-            else:
-                await self.send_error("Aksi tidak dikenal.")
+                    await self.send(text_data=json.dumps({
+                        "type": "cancel_success",
+                        "message": "Taruhan berhasil dibatalkan."
+                    }))
 
+                except GameLogicError as e:
+                    await self.send_error(str(e))
+
+                except Exception as e:
+                    logger.exception(e)
+                    await self.send_error("Terjadi kesalahan sistem.")
+                    
+            elif action == "cashout_half":
+                try:
+                    multiplier = Decimal(
+                        str(data.get("multiplier"))
+                    )
+                    profit = await database_sync_to_async(
+                        GameService.cashout_half
+                    )(
+                        data["bet_id"],
+                        user.id,
+                        multiplier
+                    )
+                    await self.send(text_data=json.dumps({
+
+                        "type": "cashout_half_success",
+
+                        "profit": str(profit),
+
+                        "message": f"Berhasil cair 50%"
+
+                    }))
+                except GameLogicError as e:
+                    await self.send_error(str(e))
+                except Exception as e:
+                    logger.exception(e)
+                    await self.send_error("Terjadi kesalahan sistem.")
+
+                except json.JSONDecodeError:
+                    await self.send_error("Format data tidak valid.")
+                except InvalidOperation:
+                    await self.send_error("Format nominal angka tidak valid.")
+                except Exception as e:
+                    logger.error(f"WebSocket Receive Error: {e}")
+                    await self.send_error("Terjadi kesalahan sistem internal.")
         except json.JSONDecodeError:
             await self.send_error("Format data tidak valid.")
         except InvalidOperation:

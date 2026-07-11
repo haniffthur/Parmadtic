@@ -1,0 +1,30 @@
+<footer class="hidden md:block bg-slate-50 border-t border-slate-200 py-6 mt-8 w-full relative z-40 mb-16">
+    <div class="max-w-5xl mx-auto px-4 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-slate-400 text-sm font-bold">
+            <i class="fa-solid fa-flask"></i> PARMADTIC
+        </div>
+        <div class="text-xs text-slate-400 font-medium">
+            PARMADTIC System Simulation. For Educational Purposes Only.
+        </div>
+    </div>
+</footer>
+
+<!-- Bottom Navigation (Sekarang disetting selalu muncul di Desktop maupun Mobile) -->
+<div class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center h-16 z-50 text-[10px] font-bold text-slate-400 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
+    
+    <a href="{% url 'deposit_view' %}" class="flex flex-col items-center gap-1.5 w-full {% if request.path == '/deposit/' %}text-blue-600{% else %}hover:text-blue-600{% endif %} cursor-pointer transition">
+        <i class="fa-solid fa-coins text-xl"></i>
+        <span>Deposit</span>
+    </a>
+    
+    <a href="{% url 'game_view' %}" class="flex flex-col items-center gap-1.5 w-full {% if request.path == '/' %}text-blue-600{% else %}hover:text-blue-600{% endif %} cursor-pointer transition">
+        <i class="fa-solid fa-house text-xl"></i>
+        <span>Home</span>
+    </a>
+    
+    <a href="{% url 'profile_view' %}" class="flex flex-col items-center gap-1.5 w-full {% if request.path == '/profile/' %}text-blue-600{% else %}hover:text-blue-600{% endif %} cursor-pointer transition">
+        <i class="fa-regular fa-user text-xl"></i>
+        <span>Profil</span>
+    </a>
+
+</div>

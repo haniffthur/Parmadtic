@@ -1,0 +1,138 @@
+
+
+<div class="h-[26rem] md:h-[30rem] relative flex items-center justify-center m-2 rounded-[22px] border transition-all duration-700 overflow-hidden"
+     :class="getBackgroundClass()">
+
+    <!-- ============ WORLD LAYER ============
+         Everything that MOVES and gets camera-shake lives here:
+         glow, nebula, moon, starfield, warp-lines, asteroids.
+         The rocket stage is intentionally NOT inside this div,
+         except the moon (crash target) which must stay part of
+         the environment's coordinate space. -->
+    <div class="absolute inset-0" :class="getWorldShakeClass()">
+
+        <!-- BACKGROUND GLOW -->
+        <div class="absolute inset-0 transition-all duration-700" :class="getBackgroundGlow()"></div>
+
+        <!-- NEBULA -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute w-[700px] h-[700px] rounded-full blur-[120px] opacity-25
+                        -left-56 -top-56 transition-all duration-700"
+                 :class="getNebulaLeft()"></div>
+            <div class="absolute w-[600px] h-[600px] rounded-full blur-[100px] opacity-25
+                        -right-44 bottom-[-200px] transition-all duration-700"
+                 :class="getNebulaRight()"></div>
+        </div>
+
+        <!-- STARFIELD: always drifting, speeds up with multiplier -->
+        <div class="starfield-far" :style="{ animationDuration: getStarSpeed('far') }"></div>
+        <div class="starfield-near" :style="{ animationDuration: getStarSpeed('near') }"></div>
+
+        <!-- MOON: crash target. Lives in world-layer coordinates so the
+             rocket-stage's computed offset (getBoundingClientRect) stays
+             consistent with what the player visually sees. -->
+        <div x-ref="moon" class="moon-wrap absolute top-[9%] right-[10%] w-16 h-16 md:w-24 md:h-24 pointer-events-none">
+            <svg viewBox="0 0 100 100" class="w-full h-full" :class="{ 'moon-rattle': moonImpact }">
+                <circle cx="50" cy="50" r="45" fill="#e2e8f0"/>
+                <circle cx="35" cy="35" r="8" fill="#cbd5e1" opacity="0.6"/>
+                <circle cx="66" cy="52" r="12" fill="#cbd5e1" opacity="0.5"/>
+                <circle cx="44" cy="70" r="6" fill="#cbd5e1" opacity="0.6"/>
+            </svg>
+            <div x-show="moonImpact" x-cloak
+                 class="absolute inset-[-30%] rounded-full bg-white moon-impact-flash"></div>
+        </div>
+
+        <!-- WARP LINES & ASTEROIDS (Saat Terbang) -->
+        <div x-show="status === 'FLYING'" class="absolute inset-0 overflow-hidden">
+            <div class="warp-line h-20 right-[10%] top-[10%]" :style="{ animationDuration: getWarpSpeed() }"></div>
+            <div class="warp-line h-32 right-[30%] top-[0%]" :style="{ animationDuration: getWarpSpeed(), animationDelay: '0.2s' }"></div>
+            <div class="warp-line h-16 right-[50%] top-[20%]" :style="{ animationDuration: getWarpSpeed(), animationDelay: '0.1s' }"></div>
+            <div class="warp-line h-40 right-[70%] top-[-10%]" :style="{ animationDuration: getWarpSpeed(), animationDelay: '0.5s' }"></div>
+            <div class="warp-line h-24 right-[90%] top-[15%]" :style="{ animationDuration: getWarpSpeed(), animationDelay: '0.3s' }"></div>
+            <svg class="anim-asteroid w-16 h-16 right-[20%] top-[0%]" style="animation-duration: 4.5s; animation-delay: 0s;" viewBox="0 0 100 100">
+                <path d="M40,10 L70,20 L85,50 L70,80 L30,85 L10,60 L20,30 Z" fill="#475569" stroke="#334155" stroke-width="2"/>
+            </svg>
+            <svg class="anim-asteroid w-10 h-10 right-[50%] top-[-10%]" style="animation-duration: 3s; animation-delay: 1.5s;" viewBox="0 0 100 100">
+                <path d="M20,20 Q40,10 60,20 T90,50 Q80,80 50,90 T10,50 Q10,30 20,20 Z" fill="#64748b"/>
+            </svg>
+        </div>
+    </div>
+    <!-- ============ END WORLD LAYER ============ -->
+
+    <!-- Saldo Melayang di Kanan Atas Box (HUD - fixed, never shakes) -->
+    <!-- <div class="absolute top-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2 border border-white/20 hidden sm:flex z-50">
+        <i class="fa-solid fa-wallet text-blue-400 text-xs"></i>
+        <div class="flex flex-col">
+            <span class="text-[9px] text-slate-300 font-bold uppercase leading-none mb-0.5">Saldo Box</span>
+            <span class="text-xs font-black text-white leading-none">Rp <span x-text="balance"></span></span>
+        </div>
+    </div> -->
+
+    <!-- UI: FLYING & CRASHED multiplier number (HUD - fixed) -->
+    <div x-show="status === 'FLYING' || status === 'CRASHED'" class="absolute bottom-10 md:bottom-12 w-full flex justify-center z-30 pointer-events-none">
+        <h1 class="text-[4rem] md:text-[6rem] font-black tabular-nums tracking-tighter opacity-90 transition-all duration-300"
+            :class="status === 'FLYING' ? 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(220,38,38,0.8)]'"
+            x-text="multiplier + 'x'"></h1>
+    </div>
+
+    <!-- ============ ROCKET STAGE ============
+         Camera-locked group: rocket + countdown (below it) + crash fx.
+         Normally centered. On CRASHED, JS computes the on-screen offset
+         to the moon and this whole stage translates there. -->
+    <div x-ref="rocketStage"
+         class="absolute inset-0 flex flex-col items-center justify-center gap-3 z-20 rocket-stage"
+         :class="{ 'no-transition': stageNoTransition }"
+         :style="{ transform: 'translate(' + crashOffset.x + 'px,' + crashOffset.y + 'px)' }">
+
+        <!-- ROKET -->
+        <div x-show="status === 'WAITING' || status === 'FLYING'"
+             class="relative w-28 h-28 md:w-32 md:h-32 drop-shadow-2xl rocket-float">
+
+            <div x-show="status === 'FLYING'" class="absolute bottom-[-20px] left-[15%] w-full h-full z-0">
+                <div class="w-12 h-12 bg-slate-300 rounded-full blur-[8px] opacity-70 anim-smoke-mega"></div>
+                <div class="w-16 h-16 bg-slate-400 rounded-full blur-[10px] opacity-60 anim-smoke-delay-1"></div>
+            </div>
+            <div class="absolute left-1/2 top-1/2 w-64 h-64 -translate-x-1/2 -translate-y-1/2
+                        rounded-full blur-3xl opacity-40 transition-all duration-500"
+                 :class="getRocketGlow()"></div>
+
+            <svg viewBox="0 0 100 100" class="w-full h-full relative z-10">
+                <g x-show="status === 'FLYING'" class="flame-anim-mega">
+                    <path d="M35,80 Q50,150 65,80 Z" fill="#b91c1c" opacity="0.5"/>
+                    <path d="M38,80 Q50,135 62,80 Z" fill="#ea580c"/>
+                    <path d="M42,80 Q50,115 58,80 Z" fill="#facc15"/>
+                    <path d="M46,80 Q50,95 54,80 Z" fill="#ffffff"/>
+                </g>
+                <path d="M50,40 L20,80 L40,80 Z" fill="#94a3b8"/>
+                <path d="M50,40 L80,80 L60,80 Z" fill="#94a3b8"/>
+                <path d="M50,10 Q65,30 65,80 L35,80 Q35,30 50,10 Z" fill="#f1f5f9"/>
+                <path d="M50,10 Q58,20 59,30 L41,30 Q42,20 50,10 Z" fill="#ef4444"/>
+                <rect x="35" y="70" width="30" height="4" fill="#ef4444"/>
+                <circle cx="50" cy="45" r="8" fill="#38bdf8" stroke="#0f172a" stroke-width="2"/>
+            </svg>
+        </div>
+
+        <!-- COUNTDOWN — persis di bawah roket -->
+        <div x-show="status === 'WAITING'" class="flex flex-col items-center pointer-events-none">
+            <h3 class="text-[10px] md:text-xs font-black text-slate-400 tracking-[0.2em] uppercase mb-2 animate-pulse">
+                Mempersiapkan Putaran
+            </h3>
+            <div class="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-[4px] border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)]"></div>
+                <span class="text-xl md:text-2xl font-black text-white relative z-10" x-text="countdown + 's'"></span>
+            </div>
+        </div>
+
+        <!-- ANIMASI CRASH: meledak tepat di posisi bulan (stage sudah ditranslate) -->
+        <div x-show="status === 'CRASHED'" x-cloak class="absolute w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
+            <div class="absolute inset-0 z-30 flex items-center justify-center">
+                <div class="debris d-1"></div><div class="debris d-2"></div>
+                <div class="debris d-3"></div><div class="debris d-4"></div>
+            </div>
+            <div class="absolute z-10 w-full h-full bg-red-700 opacity-0 anim-blast-shape" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+            <div class="absolute z-20 w-4/5 h-4/5 bg-orange-500 opacity-0 anim-blast-shape" style="clip-path: polygon(40% 0%, 70% 20%, 100% 60%, 70% 90%, 30% 100%, 0% 70%, 10% 30%); animation-delay: 0.05s;"></div>
+            <div class="absolute z-30 w-1/3 h-1/3 bg-white opacity-0 anim-blast-shape" style="clip-path: polygon(45% 10%, 80% 30%, 90% 70%, 50% 90%, 10% 60%, 20% 20%); filter: blur(3px); animation-duration: 0.4s; animation-delay: 0.15s;"></div>
+        </div>
+    </div>
+    <!-- ============ END ROCKET STAGE ============ -->
+</div>

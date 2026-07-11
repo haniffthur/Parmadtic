@@ -1,0 +1,42 @@
+{% load currency %}
+<nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="{% url 'game_view' %}" class="flex items-center gap-2">
+            <div class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">
+                <i class="fa-solid fa-flask text-sm"></i>
+            </div>
+            <span class="font-black text-slate-800 text-xl tracking-tight">PARMADTIC</span>
+        </a>
+        
+        <div class="flex items-center gap-2 md:gap-4">
+            {% if user.is_authenticated %}
+                <a href="{% url 'deposit_view' %}" class="flex items-center bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 hover:bg-blue-100 hover:shadow-sm transition-all active:scale-95 cursor-pointer">
+                    <div class="bg-blue-200 text-blue-600 w-6 h-6 flex items-center justify-center rounded text-xs mr-2"><i class="fa-solid fa-wallet"></i></div>
+                    <div class="flex flex-col justify-center">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider leading-none mb-0.5">Saldo</span>
+                        <span
+    id="global-balance-display"
+    class="text-xs md:text-sm font-black text-blue-700 leading-none"
+>
+    Rp {{ balance|rupiah }}
+</span>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center relative" x-data="{ openProfile: false }" @click.away="openProfile = false">
+                    <button @click="openProfile = !openProfile" class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                        <div class="bg-slate-200 text-slate-500 w-6 h-6 flex items-center justify-center rounded-full text-xs"><i class="fa-regular fa-user"></i></div>
+                        <span class="text-xs font-bold text-slate-700">{{ username }}</span>
+                    </button>
+                    <div x-show="openProfile" style="display: none;" class="absolute top-full right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50">
+                        <a href="{% url 'profile_view' %}" class="block px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 border-b border-slate-100"><i class="fa-solid fa-chart-pie w-4 text-blue-500"></i> Analytics</a>
+                        <a href="{% url 'withdraw_view' %}" class="block px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 border-b border-slate-100"><i class="fa-solid fa-money-bill-transfer w-4 text-emerald-500"></i> Tarik Dana</a>
+                        <a href="{% url 'logout_view' %}" class="block px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50"><i class="fa-solid fa-power-off w-4"></i> Keluar</a>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'login_view' %}" class="text-xs font-bold text-slate-600 hover:text-blue-600 transition px-3">Masuk</a>
+                <a href="{% url 'register_view' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm">Daftar</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>

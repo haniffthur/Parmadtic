@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load currency %}
+{% block content %}
+<div class="flex flex-col items-center p-4 sm:p-6 w-full max-w-4xl mx-auto mb-10">
+    
+    <!-- Profil Header (Light Theme) -->
+    <div class="bg-white rounded-3xl p-6 w-full shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between mb-8">
+        <div class="flex items-center gap-4 mb-4 sm:mb-0">
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <i class="fa-solid fa-user-astronaut text-4xl text-blue-600"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">{{ username }}</h1>
+                <p class="text-slate-500 text-sm font-medium">Anggota PARMADTIC</p>
+            </div>
+        </div>
+        <a href="{% url 'logout_view' %}" class="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-xl font-bold transition border border-red-100 active:scale-95">
+            <i class="fa-solid fa-power-off mr-2"></i>Keluar
+        </a>
+    </div>
+
+    <!-- Analitik Dasbor -->
+    <h2 class="text-sm font-black text-slate-400 w-full mb-4 uppercase tracking-widest"><i class="fa-solid fa-chart-pie mr-2"></i>Statistik Akun</h2>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        
+        <!-- Win Rate Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Win Rate</p>
+            <h3 class="text-3xl font-black text-blue-600 tabular-nums">{{ win_rate }}%</h3>
+            <p class="text-[10px] text-slate-400 font-bold mt-2 uppercase">Limit Sistem: < 50%</p>
+        </div>
+
+        <!-- Total Bets Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Main</p>
+            <h3 class="text-3xl font-black text-slate-800 tabular-nums">{{ total_bets }} <span class="text-sm text-slate-500">Ronde</span></h3>
+            <div class="flex gap-2 mt-2 text-[10px] font-black uppercase tracking-wider">
+                <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">{{ won_bets }} Menang</span>
+                <span class="text-red-500 bg-red-50 px-2 py-0.5 rounded">{{ lost_bets }} Kalah</span>
+            </div>
+        </div>
+
+        <!-- Uang Dipertaruhkan -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Mutasi (Turnover)</p>
+            <h3 class="text-2xl font-black text-amber-500 tabular-nums">{{ total_wagered|rupiah }}</h3>
+            <p class="text-[10px] text-slate-400 font-bold mt-2 uppercase">Total uang berputar</p>
+        </div>
+
+        <!-- Net PnL Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Net Profit / Loss</p>
+            <h3 class="text-2xl font-black tabular-nums {% if is_profit %}text-emerald-500{% else %}text-red-500{% endif %}">
+                {% if is_profit %}+{% endif %}{{ net_pnl|rupiah }}
+            </h3>
+            <p class="text-[10px] text-slate-400 font-bold mt-2 uppercase">Hasil Akhir Keuangan</p>
+        </div>
+        
+    </div>
+
+    <!-- Kesimpulan Edukasi (Desain Peringatan Keras) -->
+    <div class="mt-8 bg-red-50 border-2 border-red-200 rounded-2xl p-6 w-full shadow-sm relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 text-red-100 opacity-50 transform rotate-12">
+            <i class="fa-solid fa-triangle-exclamation text-8xl"></i>
+        </div>
+        <div class="relative z-10">
+            <h4 class="font-black text-red-700 mb-3 text-lg tracking-tight"><i class="fa-solid fa-triangle-exclamation mr-2"></i>FAKTA PAHIT BUAT LU PADA:</h4>
+            <div class="text-sm text-red-900 font-medium leading-relaxed space-y-3">
+                <p>
+                    Bro, makin lama lu main, makin <strong>pasti lu bakal rungkad</strong>. Nggak ada yang namanya "insting", "pola gacor", atau trik lipat ganda (gandain taruhan pas kalah) yang bisa ngalahin bandar.
+                </p>
+                <p>
+                    Sistem ini udah disetting pakai <em>House Edge</em>. Artinya? Bandar udah ngatur biar mereka PASTI untung, dan lu PASTI rugi. Pesawat meledak instan di 1.00x itu sengaja dibikin buat ngebunuh trik lipat ganda lu.
+                </p>
+                <p class="bg-white/60 p-3 rounded-lg border border-red-100 font-bold">
+                    Coba cek angka <strong>Net Profit/Loss</strong> lu di atas. Masih minus kan? Mesin ini didesain buat ngisep duit lu sampe habis. Bandar yang beli mobil mewah, lu yang jual motor. Sadar bro, berhenti sekarang sebelum lu makin hancur!
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+
+
+<div class="mt-8 pt-6 border-t border-slate-100 px-6 md:px-8 pb-6 md:pb-8">
+    <div class="flex justify-between items-center mb-4">
+        <h4 class="text-[10px] font-black text-slate-500 tracking-wider uppercase">Riwayat Simulasi</h4>
+        <button @click="openModal()" class="text-[10px] text-blue-600 font-bold hover:underline">Lihat Semua</button>
+    </div>
+    <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+        <template x-for="(cp, index) in recentHistory" :key="index">
+            <div class="px-3 py-1.5 rounded-full text-[11px] font-black tabular-nums transition hover:scale-105"
+                 :class="getColorClass(cp)"
+                 x-text="parseFloat(cp).toFixed(2) + 'x'"></div>
+        </template>
+        <div x-show="recentHistory.length === 0" class="text-xs text-slate-400 italic">Belum ada riwayat...</div>
+    </div>
+</div>
+
+<div x-show="isModalOpen" style="display: none;"
+     class="fixed inset-0 bg-slate-900/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm"
+     x-transition>
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] border border-slate-200" @click.away="closeModal()">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+            <h2 class="font-black text-lg text-slate-800"><i class="fa-solid fa-clock-rotate-left text-blue-600 mr-2"></i>Riwayat Putaran</h2>
+            <button @click="closeModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-grow">
+            <div class="grid grid-cols-5 gap-2 md:gap-3">
+                <template x-for="item in fullHistoryData" :key="item.id">
+                    <div class="py-2.5 rounded-full text-[11px] md:text-xs font-black tabular-nums text-center transition hover:scale-105"
+                         :class="getColorClass(item.crash_point)"
+                         x-text="parseFloat(item.crash_point).toFixed(2) + 'x'"></div>
+                </template>
+            </div>
+
+            <div x-show="fullHistoryData.length === 0 && !isLoadingHistory" class="text-center py-6 text-slate-400 text-sm italic">Belum ada riwayat tercatat...</div>
+            <div x-show="isLoadingHistory" class="text-center py-6 text-blue-600"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i></div>
+
+            <div x-show="hasNextPage && !isLoadingHistory" class="text-center mt-8 mb-2">
+                <button @click="loadMoreHistory()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-xs transition active:scale-95 w-full">
+                    Muat Lebih Banyak...
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
