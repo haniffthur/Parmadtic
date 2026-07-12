@@ -21,6 +21,7 @@ document.addEventListener('alpine:init', () => {
         isBetPlaced: false,
         sysMessage: 'Simulator Siap.',
         cashoutTarget: '',
+        activePlayers: 0,
 
         // ---------------- Modal / history pagination ----------------
         isModalOpen: false,
@@ -123,6 +124,10 @@ document.addEventListener('alpine:init', () => {
                     this.status = data.payload.state;
                     this.roundId = data.payload.round_id;
                     if (data.payload.history) { this.recentHistory = data.payload.history; }
+
+                    if (data.payload.active_players !== undefined) {
+                        this.activePlayers = data.payload.active_players;
+                    }
 
                     if (this.status === 'WAITING') {
                         this.countdown = data.payload.countdown;

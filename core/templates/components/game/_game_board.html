@@ -59,14 +59,20 @@
     </div>
     <!-- ============ END WORLD LAYER ============ -->
 
-    <!-- Saldo Melayang di Kanan Atas Box (HUD - fixed, never shakes) -->
-    <!-- <div class="absolute top-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2 border border-white/20 hidden sm:flex z-50">
-        <i class="fa-solid fa-wallet text-blue-400 text-xs"></i>
-        <div class="flex flex-col">
-            <span class="text-[9px] text-slate-300 font-bold uppercase leading-none mb-0.5">Saldo Box</span>
-            <span class="text-xs font-black text-white leading-none">Rp <span x-text="balance"></span></span>
+<!-- UI: Indikator Pemain Aktif (Melayang Kiri Atas) -->
+    <div class="absolute top-4 left-4 bg-slate-900/40 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-700/50 z-50 transition-all duration-300 shadow-lg">
+        <div class="relative flex items-center justify-center w-6 h-6 bg-blue-500/20 rounded-full border border-blue-500/30">
+            <i class="fa-solid fa-users text-blue-400 text-[10px]"></i>
+            <!-- Animasi ping agar terasa 'Live' -->
+            <div class="absolute inset-0 rounded-full border border-blue-400 animate-ping opacity-20"></div>
         </div>
-    </div> -->
+        <div class="flex flex-col">
+            <span class="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">Live Players</span>
+            <span class="text-xs font-black text-white leading-none">
+                <span x-text="activePlayers"></span> <span class="text-slate-300 font-medium text-[10px]">Orang</span>
+            </span>
+        </div>
+    </div>
 
     <!-- UI: FLYING & CRASHED multiplier number (HUD - fixed) -->
     <div x-show="status === 'FLYING' || status === 'CRASHED'" class="absolute bottom-10 md:bottom-12 w-full flex justify-center z-30 pointer-events-none">
