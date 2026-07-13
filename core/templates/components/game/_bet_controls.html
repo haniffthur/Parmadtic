@@ -79,14 +79,14 @@
                     <button @click="cashoutTarget = preset" :disabled="isBetPlaced || !{{ user.is_authenticated|yesno:'true,false' }}"
                             class="px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                             :class="parseFloat(cashoutTarget) === preset ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
-                        <span x-text="preset.toFixed(2) + 'x'"></span>
+                        <span x-text="preset.toFixed(2) + 'x'   "></span>
                     </button>
                 </template>
             </div>
             <div class="relative flex items-center">
                 <!-- UBAHAN: Hapus status !== 'WAITING' -->
                 <input type="number" x-model="cashoutTarget" :disabled="isBetPlaced || !{{ user.is_authenticated|yesno:'true,false' }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition disabled:opacity-50" placeholder="Biarkan kosong untuk manual...">
-                <span class="absolute right-4 font-black text-slate-400 text-sm">x</span>
+                <span class="absolute right-4 font-black text-slate-400 text-sm"></span>
             </div>
         </div>
     </div>
