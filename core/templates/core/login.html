@@ -8,7 +8,9 @@
             <h1 class="text-2xl font-black text-slate-800 tracking-tight">Selamat Datang Kembali</h1>
             <p class="text-slate-500 mt-1 text-sm">Masuk ke akun PARMADTIC Anda.</p>
         </div>
-        <form method="POST" action="">
+        
+        <!-- PERBAIKAN: Menambahkan data-turbo="false" di sini 👇 -->
+        <form method="POST" action="" data-turbo="false">
             {% csrf_token %}
             {% if form.non_field_errors %}
                 <div class="bg-red-50 text-red-500 p-3 rounded-xl mb-4 text-sm font-bold border border-red-100">Kredensial tidak valid.</div>
@@ -23,6 +25,7 @@
             </div>
             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.98]">Masuk ke Sistem</button>
         </form>
+        
         <p class="text-center text-slate-500 mt-6 text-sm font-medium">Belum punya akun? <a href="{% url 'register_view' %}" class="text-blue-600 hover:underline font-bold">Daftar sekarang</a></p>
     </div>
 </div>
